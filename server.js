@@ -19,18 +19,58 @@ app.get('/', function(req, res) {
   res.sendFile(process.cwd() + '/views/index.html');
 });
 
-//Mongoose stuff can go here
+//Mongoose schema and model definitions
+const { Schema }  = mongoose;
+
+const urlSchema = new Schema({
+  original_url: String,
+  short_url: Number
+});
+
+const urlRecord = mongoose.model('urlRecord', urlSchema);
+
+const newURL = (address, num, done) => {
+  const thisURL = new urlRecord({
+    original_url: address,
+    short_url: num
+  });
+
+  thisURL.save((err, data) => {
+    if (err) return console.error(err);
+    done(null, data);
+  }); 
+};
+
+//Use a counter to set short urls
+const urlCounter = (function() {
+  let counter = 0;
+  return function() {
+    counter++;
+    return counter;
+  }
+})();
 
 
 
-// Your first API endpoint
+// FCC's example API endpoint
 app.get('/api/hello', function(req, res) {
   res.json({ greeting: 'hello API' });
 });
 
 
+// The post method that does all the work
 app.post('/api/shorturl', (req, res) => {
-  res.json({ original_url: req.body.url, short_url: 1});
+  // Check whether this already exists in the database
+
+  // Add a document to the database
+  let urlNumber = urlCounter();
+  newURL(req.body.url, urlNumber);
+
+  //show a json response to the user
+  res.json({ 
+    original_url: req.body.url, 
+    short_url: urlNumber
+  });
 });
 
 
