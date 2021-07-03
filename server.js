@@ -1,9 +1,10 @@
 require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
-const app = express();
+const path = require('path');
 const mongoose = require('mongoose');
 const bodyParser = require('body-parser');
+const app = express();
 
 mongoose.connect(process.env.MONGO_URI, { useNewUrlParser: true, useUnifiedTopology: true });
 
@@ -11,7 +12,8 @@ mongoose.connect(process.env.MONGO_URI, { useNewUrlParser: true, useUnifiedTopol
 const port = process.env.PORT || 3000;
 
 app.use(cors());
-app.use(bodyParser.urlencoded({extended: false}));
+
+app.use(bodyParser.urlencoded({ extended: false }));
 
 app.use('/public', express.static(`${process.cwd()}/public`));
 
@@ -20,7 +22,9 @@ app.get('/', function(req, res) {
 });
 
 //Mongoose schema and model definitions
-const { Schema }  = mongoose;
+const { Schema } = mongoose;
+
+// To store a counter in the database
 
 const urlSchema = new Schema({
   original_url: String,
@@ -29,7 +33,7 @@ const urlSchema = new Schema({
 
 const urlRecord = mongoose.model('urlRecord', urlSchema);
 
-const newURL = (address, num, done) => {
+const newURL = (address, num) => {
   const thisURL = new urlRecord({
     original_url: address,
     short_url: num
@@ -37,8 +41,7 @@ const newURL = (address, num, done) => {
 
   thisURL.save((err, data) => {
     if (err) return console.error(err);
-    done(null, data);
-  }); 
+  });
 };
 
 //Use a counter to set short urls
@@ -67,8 +70,8 @@ app.post('/api/shorturl', (req, res) => {
   newURL(req.body.url, urlNumber);
 
   //show a json response to the user
-  res.json({ 
-    original_url: req.body.url, 
+  res.json({
+    original_url: req.body.url,
     short_url: urlNumber
   });
 });
