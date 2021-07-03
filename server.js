@@ -4,6 +4,7 @@ const cors = require('cors');
 const path = require('path');
 const mongoose = require('mongoose');
 const bodyParser = require('body-parser');
+const dns = require('dns');
 const app = express();
 
 mongoose.connect(process.env.MONGO_URI, { useNewUrlParser: true, useUnifiedTopology: true });
@@ -44,15 +45,17 @@ const newURL = (address, num) => {
   });
 };
 
-//Use a counter to set short urls
-const urlCounter = (function() {
-  let counter = 0;
-  return function() {
-    counter++;
-    return counter;
-  }
-})();
-
+const validateURL = async (address) => {
+  return new Promise((resolve, reject) => {
+    dns.lookup(address.replace(/^https?:\/\//, ''), {all: true}, (err) => {
+      if (err) {
+        reject(new Error('Invalid URL'));
+      } else {
+        resolve('ok');
+      }
+    });
+  });
+};
 
 
 // FCC's example API endpoint
@@ -62,18 +65,26 @@ app.get('/api/hello', function(req, res) {
 
 
 // The post method that does all the work
-app.post('/api/shorturl', (req, res) => {
-  // Check whether this already exists in the database
+app.post('/api/shorturl', async (req, res) => {
+  const address = req.body.url;
+  console.log(address);
+  try {
+    // Check whether this already exists in the database
+    await validateURL(address);
 
-  // Add a document to the database
-  let urlNumber = urlCounter();
-  newURL(req.body.url, urlNumber);
+    // Add a document to the database
+    const num = await urlRecord.estimatedDocumentCount();
 
-  //show a json response to the user
-  res.json({
-    original_url: req.body.url,
-    short_url: urlNumber
-  });
+    newURL(address, num);
+
+    //show a json response to the user
+    res.json({
+      original_url: address,
+      short_url: num ? num + 1 : 1
+    });
+  } catch (e) {
+    res.json({ error: 'Invalid URL' });
+  }
 });
 
 
