@@ -1,7 +1,6 @@
 require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
-const path = require('path');
 const mongoose = require('mongoose');
 const bodyParser = require('body-parser');
 const dns = require('dns');
@@ -70,6 +69,10 @@ app.post('/api/shorturl', async (req, res) => {
   console.log(address);
   try {
     // Check whether this already exists in the database
+    if (address === '') {
+      throw new Error('This is not a valid address');
+    }
+
     await validateURL(address);
 
     // Add a document to the database
@@ -87,6 +90,26 @@ app.post('/api/shorturl', async (req, res) => {
   }
 });
 
+// Retrieve a short url from the database and redirect to its original url
+app.get('/api/shorturl/:target', async (req, res) => {
+  const target = +req.params.target;
+
+  try {
+    if (isNaN(target)) {
+      res.json({ error: "This is not a valid short_url"});
+    }
+
+    const url = await urlRecord.findOne( { short_url: target });
+
+    res.redirect(url.original_url);
+
+  } catch (err) {
+
+    console.error(err);
+    res.json({ error: 'Something went wrong'})
+  }
+
+});
 
 app.listen(port, function() {
   console.log(`Listening on port ${port}`);
