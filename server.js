@@ -45,8 +45,11 @@ const newURL = (address, num) => {
 };
 
 const validateURL = async (address) => {
+  const url = new URL(address);
+  console.log(address, url.hostname, url.protocol)
   return new Promise((resolve, reject) => {
-    dns.lookup(address.replace(/^https?:\/\//, ''), {all: true}, (err) => {
+    if (!url.hostname || !url.protocol || !url.protocol.match(/^https?:/)) reject(new Error('Invalid URL'));
+    dns.lookup(url.hostname, {all: true}, (err) => {
       if (err) {
         reject(new Error('Invalid URL'));
       } else {
@@ -78,7 +81,7 @@ app.post('/api/shorturl', async (req, res) => {
     // Add a document to the database
     const num = await urlRecord.estimatedDocumentCount();
 
-    newURL(address, num);
+    newURL(address, num + 1);
 
     //show a json response to the user
     res.json({
