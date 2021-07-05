@@ -46,9 +46,15 @@ const newURL = (address, num) => {
 
 const validateURL = async (address) => {
   const url = new URL(address);
-  console.log(address, url.hostname, url.protocol)
+
   return new Promise((resolve, reject) => {
+
+    if (address === '') {
+      reject(new Error('This is not a valid address'));
+    }
+
     if (!url.hostname || !url.protocol || !url.protocol.match(/^https?:/)) reject(new Error('Invalid URL'));
+
     dns.lookup(url.hostname, {all: true}, (err) => {
       if (err) {
         reject(new Error('Invalid URL'));
@@ -59,22 +65,24 @@ const validateURL = async (address) => {
   });
 };
 
+const checkDatabase = async (address) => {
+  const haveThatOne = await urlRecord.findOne({ original_url: address}, '-_id -__v').exec();
+  console.log(haveThatOne)
+  if (haveThatOne) return haveThatOne;
 
-// FCC's example API endpoint
-app.get('/api/hello', function(req, res) {
-  res.json({ greeting: 'hello API' });
-});
+  return undefined;
+}
 
 
 // The post method that does all the work
 app.post('/api/shorturl', async (req, res) => {
   const address = req.body.url;
-  console.log(address);
   try {
     // Check whether this already exists in the database
-    if (address === '') {
-      throw new Error('This is not a valid address');
-    }
+    const check = await checkDatabase(address);
+    console.log(check);
+    if (check) res.json(check);
+
 
     await validateURL(address);
 
